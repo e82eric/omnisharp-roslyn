@@ -43,7 +43,7 @@ namespace OmniSharp.Roslyn.CSharp.Services.Navigation
             var location = symbol.Locations.First();
 
             GotoDefinitionResponse? response = null;
-            if (location.IsInSource)
+            if (location.IsInSource && !request.FileName.StartsWith("$metadata"))
             {
                 var lineSpan = symbol.Locations.First().GetMappedLineSpan();
                 response = new GotoDefinitionResponse
@@ -54,24 +54,50 @@ namespace OmniSharp.Roslyn.CSharp.Services.Navigation
                     SourceGeneratedInfo = GoToDefinitionHelpers.GetSourceGeneratedFileInfo(_workspace, location)
                 };
             }
-            else if (location.IsInMetadata && request.WantMetadata)
+            else if (location.IsInMetadata && request.WantMetadata || request.FileName.StartsWith("$metadata"))
             {
-                var maybeSpan = await GoToDefinitionHelpers.GetMetadataMappedSpan(document, symbol, externalSourceService, cancellationToken);
+                var symbolName = symbol.GetSymbolName();
 
-                if (maybeSpan is FileLinePositionSpan lineSpan)
+                foreach (var project in _workspace.CurrentSolution.Projects)
                 {
-                    response = new GotoDefinitionResponse
+                    var compilation = await project.GetCompilationAsync();
+
+                    symbol = compilation?.GetTypeByMetadataName(symbolName);
+                    if (symbol != null)
+                        //if (symbol != null && symbol.ContainingAssembly.Name == assemblyName)
                     {
-                        Line = lineSpan.StartLinePosition.Line,
-                        Column = lineSpan.StartLinePosition.Character,
-                        MetadataSource = new MetadataSource()
+                        var (metadataDocument, documentPath) =
+                            await externalSourceService.GetAndAddExternalSymbolDocument(project, symbol,
+                                cancellationToken);
+
+                        if (metadataDocument != null)
                         {
-                            AssemblyName = symbol.ContainingAssembly.Name,
-                            ProjectName = document.Project.Name,
-                            TypeName = symbol.GetSymbolName()
-                        },
-                    };
+                            break;
+                        }
+                    }
+
                 }
+
+                if (symbol != null)
+                {
+                    var maybeSpan = await GoToDefinitionHelpers.GetMetadataMappedSpan(document, symbol, externalSourceService, cancellationToken);
+
+                    if (maybeSpan is FileLinePositionSpan lineSpan)
+                    {
+                        response = new GotoDefinitionResponse
+                        {
+                            Line = lineSpan.StartLinePosition.Line,
+                            Column = lineSpan.StartLinePosition.Character,
+                            MetadataSource = new MetadataSource()
+                            {
+                                AssemblyName = symbol.ContainingAssembly.Name,
+                                ProjectName = document.Project.Name,
+                                TypeName = symbol.GetSymbolName()
+                            },
+                        };
+                    }
+                }
+
             }
 
             return response ?? new GotoDefinitionResponse();

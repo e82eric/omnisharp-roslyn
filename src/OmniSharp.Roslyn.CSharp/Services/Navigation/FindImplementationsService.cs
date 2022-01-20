@@ -1,7 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Composition;
 using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.FindSymbols;
@@ -11,6 +14,9 @@ using OmniSharp.Helpers;
 using OmniSharp.Mef;
 using OmniSharp.Models;
 using OmniSharp.Models.FindImplementations;
+using OmniSharp.Models.Metadata;
+using OmniSharp.Options;
+using OmniSharp.Roslyn.CSharp.Services.Decompilation;
 
 namespace OmniSharp.Roslyn.CSharp.Services.Navigation
 {
@@ -18,27 +24,73 @@ namespace OmniSharp.Roslyn.CSharp.Services.Navigation
     public class FindImplementationsService : IRequestHandler<FindImplementationsRequest, QuickFixResponse>
     {
         private readonly OmniSharpWorkspace _workspace;
+        private ExternalSourceServiceFactory _externalSourceServiceFactory;
+        private OmniSharpOptions _omniSharpOptions;
 
         [ImportingConstructor]
-        public FindImplementationsService(OmniSharpWorkspace workspace)
+        public FindImplementationsService(OmniSharpWorkspace workspace, ExternalSourceServiceFactory externalSourceServiceFactory, OmniSharpOptions omniSharpOptions)
         {
+            _omniSharpOptions = omniSharpOptions;
+            _externalSourceServiceFactory = externalSourceServiceFactory;
             _workspace = workspace;
         }
 
         public async Task<QuickFixResponse> Handle(FindImplementationsRequest request)
         {
-            var document = _workspace.GetDocument(request.FileName);
-            var response = new QuickFixResponse();
-
-            if (document != null)
+            Document document = null;
+            ISymbol symbol = null;
+            if (request.FileName.StartsWith("$metadata"))
             {
-                var semanticModel = await document.GetSemanticModelAsync();
+                var externalSourceService = _externalSourceServiceFactory.Create(_omniSharpOptions);
+
+                document = externalSourceService.FindDocumentInCache(request.FileName) ??
+                               _workspace.GetDocument(request.FileName);
+
                 var sourceText = await document.GetTextAsync();
                 var position = sourceText.GetTextPosition(request);
 
-                var quickFixes = new List<QuickFix>();
-                var symbol = await SymbolFinder.FindSymbolAtPositionAsync(semanticModel, position, _workspace);
+                symbol = await SymbolFinder.FindSymbolAtPositionAsync(document, position, CancellationToken.None);
 
+                var symbolName = symbol.GetSymbolName();
+
+                foreach (var project in _workspace.CurrentSolution.Projects)
+                {
+                    var compilation = await project.GetCompilationAsync();
+
+                    symbol = compilation.GetTypeByMetadataName(symbolName);
+                    if (symbol != null)
+                    {
+                        var cancellationToken = _externalSourceServiceFactory.CreateCancellationToken(_omniSharpOptions, int.MaxValue);
+                        var (metadataDocument, documentPath) = await externalSourceService.GetAndAddExternalSymbolDocument(project, symbol, cancellationToken);
+
+                        if (metadataDocument != null)
+                        {
+                            document = metadataDocument;
+                            break;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                document = _workspace.GetDocument(request.FileName);
+            }
+
+            var response = new QuickFixResponse();
+
+            if (document != null || symbol !=null)
+            {
+                var quickFixes = new List<QuickFix>();
+                var metadataSources = new List<MetadataSource>();
+
+                if (document != null && symbol == null)
+                {
+                    var semanticModel = await document.GetSemanticModelAsync();
+                    var sourceText = await document.GetTextAsync();
+                    var position = sourceText.GetTextPosition(request);
+
+                    symbol = await SymbolFinder.FindSymbolAtPositionAsync(semanticModel, position, _workspace);
+                }
                 if (symbol == null)
                 {
                     return response;
@@ -46,11 +98,20 @@ namespace OmniSharp.Roslyn.CSharp.Services.Navigation
 
                 if (symbol.IsInterfaceType() || symbol.IsImplementableMember())
                 {
-                    // SymbolFinder.FindImplementationsAsync will not include the method overrides
                     var implementations = await SymbolFinder.FindImplementationsAsync(symbol, _workspace.CurrentSolution);
                     foreach (var implementation in implementations)
                     {
-                        quickFixes.Add(implementation, _workspace);
+                        if (implementation.Locations.First().IsInSource)
+                        {
+                            quickFixes.Add(implementation, _workspace);
+                        }
+                        else
+                        {
+                            _omniSharpOptions.RoslynExtensionsOptions.EnableDecompilationSupport = true;
+                            var externalSourceService = _externalSourceServiceFactory.Create(_omniSharpOptions);
+                            quickFixes.Add(metadataSources, implementation, implementation.Locations.First(), _workspace, document, externalSourceService);
+                        }
+                        
 
                         if (implementation.IsOverridable())
                         {
@@ -89,6 +150,7 @@ namespace OmniSharp.Roslyn.CSharp.Services.Navigation
                 response = new QuickFixResponse(quickFixes.OrderBy(q => q.FileName)
                                                             .ThenBy(q => q.Line)
                                                             .ThenBy(q => q.Column));
+                response.MetadataFiles = metadataSources;
             }
 
             return response;

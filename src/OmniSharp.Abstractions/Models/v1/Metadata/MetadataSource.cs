@@ -1,3 +1,5 @@
+using OmniSharp.Models.V2;
+
 namespace OmniSharp.Models.Metadata
 {
     public class MetadataSource
@@ -7,5 +9,8 @@ namespace OmniSharp.Models.Metadata
         public string ProjectName { get; set; }
         public string VersionNumber { get; set; }
         public string Language { get; set; }
+        public int Line { get; set; }
+        public int Column { get; set; }
+        public string FileName { get; set; }
     }
 }

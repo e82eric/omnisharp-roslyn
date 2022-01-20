@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OmniSharp.Models.Metadata;
 
 namespace OmniSharp.Models
 {
@@ -16,6 +17,7 @@ namespace OmniSharp.Models
         }
 
         public IEnumerable<QuickFix> QuickFixes { get; set; }
+        public IEnumerable<MetadataSource> MetadataFiles { get; set; }
 
         IAggregateResponse IAggregateResponse.Merge(IAggregateResponse response)
         {
