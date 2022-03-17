@@ -1,0 +1,97 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{3D9384EF-28EF-4BE1-BD21-0A8A187E584C}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>IlSpy.Analyzer.Extraction</RootNamespace>
+    <AssemblyName>IlSpy.Analyzer.Extraction</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <LangVersion>10</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <LangVersion>10</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.CodeAnalysis, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">
+      <HintPath>..\..\..\Users\eric\.nuget\packages\microsoft.codeanalysis.common\4.0.1-1.22053.6\lib\netcoreapp3.1\Microsoft.CodeAnalysis.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AnalyzerContext.cs" />
+    <Compile Include="CachingDecompiler.cs" />
+    <Compile Include="DecompilerFactory.cs" />
+    <Compile Include="EntityHandleExposer.cs" />
+    <Compile Include="FieldUsedByAnalyzer.cs" />
+    <Compile Include="ILSpyBaseTypeUsageFinder.cs" />
+    <Compile Include="IlSpyDecompilationService.cs" />
+    <Compile Include="IlSpyFieldUsageFinder.cs" />
+    <Compile Include="IlSpyLocalUsageFinder.cs" />
+    <Compile Include="IlSpyMemberFinder.cs" />
+    <Compile Include="IlSpyMetadataSource.cs" />
+    <Compile Include="ILSpyMethodImplementationFinder.cs" />
+    <Compile Include="IlSpyMethodUsagesFindeer.cs" />
+    <Compile Include="IlSpyPropertyFinder.cs" />
+    <Compile Include="IlSpyPropertyUsageFinder.cs" />
+    <Compile Include="IlSpyTypeFinder.cs" />
+    <Compile Include="IlSpyUsagesFinder.cs" />
+    <Compile Include="LocalUsageInMethodBodyFinder.cs" />
+    <Compile Include="MethodFinder.cs" />
+    <Compile Include="MethodImplementedByAnalyzeer.cs" />
+    <Compile Include="MethodInMethodBodyFinder.cs" />
+    <Compile Include="MethodInTypeFinder.cs" />
+    <Compile Include="MethodUsedByAnalyzer.cs" />
+    <Compile Include="PropertyInMethodBodyFinder.cs" />
+    <Compile Include="PropertyInTypeFinder.cs" />
+    <Compile Include="PropertyUsedByAnalyzer.cs" />
+    <Compile Include="TypeDefinitionUsedVisitor.cs" />
+    <Compile Include="AnalyzerScope.cs" />
+    <Compile Include="AssemblyList.cs" />
+    <Compile Include="LoadedAssembly.cs" />
+    <Compile Include="LoadedAssemblyExtensions.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TypeInMethodBodyFinder.cs" />
+    <Compile Include="TypeInMethodDefinitionFinder.cs" />
+    <Compile Include="TypenFinder.cs" />
+    <Compile Include="TypeSystemHelper.cs" />
+    <Compile Include="TypeUsageInMethod.cs" />
+    <Compile Include="TypeUsedByAnalyzer.cs" />
+    <Compile Include="TypeUsedInTypeFinder.cs" />
+    <Compile Include="UsageAsTextLocation.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ICSharpCode.Decompiler">
+      <Version>7.1.0.6543</Version>
+    </PackageReference>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.2.0-2.22113.2" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

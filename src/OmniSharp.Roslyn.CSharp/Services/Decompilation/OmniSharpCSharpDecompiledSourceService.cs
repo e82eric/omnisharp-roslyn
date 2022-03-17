@@ -4,14 +4,19 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Reflection.PortableExecutable;
 using System.Threading;
 using System.Threading.Tasks;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.CSharp;
+using ICSharpCode.Decompiler.CSharp.OutputVisitor;
+using ICSharpCode.Decompiler.CSharp.Syntax;
 using ICSharpCode.Decompiler.CSharp.Transforms;
 using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
+using ICSharpCode.ILSpy.Analyzers.Builtin;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Formatting;
 using Microsoft.CodeAnalysis.Shared.Extensions;
@@ -34,13 +39,20 @@ namespace OmniSharp.Roslyn.CSharp.Services.Decompilation
             _loggerFactory = loggerFactory;
         }
 
-        public async Task<Document> AddSourceToAsync(Document document, Compilation symbolCompilation, Microsoft.CodeAnalysis.ISymbol symbol, CancellationToken cancellationToken)
+        public Task<Document> AddSourceToAsync(Document document, Compilation symbolCompilation, Microsoft.CodeAnalysis.ISymbol symbol, CancellationToken cancellationToken)
         {
             // Get the name of the type the symbol is in
             var containingOrThis = symbol.GetContainingTypeOrThis();
             var fullName = GetFullReflectionName(containingOrThis);
 
             var reference = symbolCompilation.GetMetadataReference(symbol.ContainingAssembly);
+
+            if (reference == null)
+            {
+                reference = symbolCompilation.References.FirstOrDefault(r =>
+                    r.Display.Replace(".dll", "") == symbol.ContainingAssembly.MetadataName);
+            }
+
             var assemblyLocation = (reference as PortableExecutableReference)?.FilePath;
             if (assemblyLocation == null)
             {
@@ -50,19 +62,19 @@ namespace OmniSharp.Roslyn.CSharp.Services.Decompilation
             // Decompile
             document = PerformDecompilation(document, fullName, symbolCompilation, assemblyLocation);
 
-            document = await AddAssemblyInfoRegionAsync(document, symbol, cancellationToken).ConfigureAwait(false);
+            // document = await AddAssemblyInfoRegionAsync(document, symbol, cancellationToken).ConfigureAwait(false);
 
             // Convert XML doc comments to regular comments, just like MAS
-            document = await ConvertDocCommentsToRegularCommentsAsync(document, cancellationToken).ConfigureAwait(false);
+            // document = await ConvertDocCommentsToRegularCommentsAsync(document, cancellationToken).ConfigureAwait(false);
 
-            var node = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+            //var node = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 
             // Apply formatting rules
-            document = await Formatter.FormatAsync(
-                  document, new[] { node.FullSpan },
-                  options: null, cancellationToken).ConfigureAwait(false);
+            // document = await Formatter.FormatAsync(
+            //       document, new[] { node.FullSpan },
+            //       options: null, cancellationToken).ConfigureAwait(false);
 
-            return document;
+            return Task.FromResult(document);
         }
 
         private Document PerformDecompilation(Document document, string fullName, Compilation compilation, string assemblyLocation)

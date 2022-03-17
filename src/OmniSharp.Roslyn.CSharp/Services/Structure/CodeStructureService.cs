@@ -11,6 +11,7 @@ using OmniSharp.Extensions;
 using OmniSharp.Mef;
 using OmniSharp.Models.V2;
 using OmniSharp.Models.V2.CodeStructure;
+using OmniSharp.Options;
 using OmniSharp.Roslyn.Utilities;
 using OmniSharp.Services;
 
@@ -21,20 +22,39 @@ namespace OmniSharp.Roslyn.CSharp.Services.Structure
     {
         private readonly OmniSharpWorkspace _workspace;
         private readonly IEnumerable<ICodeElementPropertyProvider> _propertyProviders;
+        private ExternalSourceServiceFactory _externalSourceServiceFactory;
+        private OmniSharpOptions _omniSharpOptions;
 
         [ImportingConstructor]
         public CodeStructureService(
             OmniSharpWorkspace workspace,
-            [ImportMany] IEnumerable<ICodeElementPropertyProvider> propertyProviders)
+            [ImportMany] IEnumerable<ICodeElementPropertyProvider> propertyProviders,
+            ExternalSourceServiceFactory externalSourceServiceFactory,
+            OmniSharpOptions omniSharpOptions)
         {
+            _omniSharpOptions = omniSharpOptions;
+            _externalSourceServiceFactory = externalSourceServiceFactory;
             _workspace = workspace;
             _propertyProviders = propertyProviders;
         }
 
         public async Task<CodeStructureResponse> Handle(CodeStructureRequest request)
         {
-            // To provide complete code structure for the document wait until all projects are loaded.
-            var document = await _workspace.GetDocumentFromFullProjectModelAsync(request.FileName);
+            Document document = null;
+            if (request.FileName.StartsWith("$metadata"))
+            {
+                var externalSourceService = _externalSourceServiceFactory.Create(_omniSharpOptions);
+
+                document = externalSourceService.FindDocumentInCache(request.FileName) ??
+                           _workspace.GetDocument(request.FileName);
+
+            }
+            else
+            {
+                // To provide complete code structure for the document wait until all projects are loaded.
+                document = await _workspace.GetDocumentFromFullProjectModelAsync(request.FileName);
+            }
+
             if (document == null)
             {
                 return new CodeStructureResponse { Elements = Array.Empty<CodeElement>() };

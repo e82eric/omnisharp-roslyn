@@ -1,10 +1,11 @@
-namespace OmniSharp.Models.Metadata
+﻿namespace IlSpy.Analyzer.Extraction
 {
-    public class MetadataSource
+    public class IlSpyMetadataSource
     {
         public string AssemblyName { get; set; }
         public string TypeName { get; set; }
         public string ProjectName { get; set; }
+        public string VersionNumber { get; set; }
         public string Language { get; set; }
         public int Line { get; set; }
         public int Column { get; set; }
@@ -12,11 +13,14 @@ namespace OmniSharp.Models.Metadata
         public string SourceLine { get; set; }
         public string SourceText { get; set; }
         public string MemberName { get; set; }
+
         public int StatementLine { get; set; }
+
         public int StartColumn { get; set; }
         public int EndColumn { get; set; }
-        public uint Token { get; set; }
 
+        public uint Token { get; set; }
+        public uint MethodToken { get; set; }
         public uint ContainingTypeToken { get; set; }
         public string ContainingTypeFullName { get; set; }
         public string AssemblyFilePath { get; set; }
