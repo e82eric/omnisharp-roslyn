@@ -13,14 +13,16 @@ namespace IlSpy.Analyzer.Extraction
 {
     public class IlSpyUsagesFinder
     {
-        public IEnumerable<IlSpyMetadataSource> Run(string fileName, string typeName, string projectName)
+        public IEnumerable<IlSpyMetadataSource> Run(string fileName, string typeName, string projectName, IEnumerable<string> otherReferences)
         {
             var result = new List<IlSpyMetadataSource>();
 
             try
             {
                 var cont1 = new AnalyzerContext();
-                var assemblyList = new AssemblyList(new List<string>() { fileName });
+                var enumerable = new List<string>() { fileName };
+                enumerable.AddRange(otherReferences);
+                var assemblyList = new AssemblyList(enumerable);
                 cont1.AssemblyList = assemblyList;
                 var findAssembly = assemblyList.FindAssembly(fileName);
                 var ts = cont1.GetOrCreateTypeSystem(findAssembly.GetPEFileOrNull());

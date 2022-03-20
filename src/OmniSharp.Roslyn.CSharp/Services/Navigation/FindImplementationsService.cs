@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Composition;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using ICSharpCode.Decompiler.Metadata;
 using IlSpy.Analyzer.Extraction;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.FindSymbols;
@@ -125,6 +127,8 @@ namespace OmniSharp.Roslyn.CSharp.Services.Navigation
                                     parameters.Add(parameterType);
                                 }
 
+                                var otherReferences = document.Project.MetadataReferences;
+
                                 var finder = new IlSpyMethodImplementationFinder();
                                 var ilSpyUsages = finder.Run(document.Project.OutputFilePath, symbol.ContainingType.GetMetadataName(), symbol.Name, parameters,  document.Project.Name);
 
@@ -178,8 +182,24 @@ namespace OmniSharp.Roslyn.CSharp.Services.Navigation
                             // symbol = compilation.GetTypeByMetadataName(symbolName);
                             // if (symbol != null)
                             // {
+                            var references = new List<string>();
+                            foreach (var solutionProject in document.Project.Solution.Projects)
+                            {
+                                foreach (var reference in solutionProject.MetadataReferences)
+                                {
+                                    var image = reference as PortableExecutableReference;
+                                    if (image != null)
+                                    {
+                                        references.Add(image.FilePath);
+                                    }
+                                }
+                            }
+
+                            var distinctReferences = references.Distinct();
+
+
                                 var finder = new IlSpyBaseTypeUsageFinder();
-                                var foundUsages = finder.Run(document.Project.OutputFilePath, symbolName, document.Project.Name);
+                                var foundUsages = finder.Run(document.Project.OutputFilePath, symbolName, document.Project.Name, distinctReferences);
                                 var ilSpyMetadataSources = new List<MetadataSource>();
 
                                 foreach (var ilSpyMetadataSource in foundUsages)

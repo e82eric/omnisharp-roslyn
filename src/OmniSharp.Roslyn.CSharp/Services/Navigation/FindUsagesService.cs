@@ -448,7 +448,17 @@ namespace OmniSharp.Roslyn.CSharp.Services.Navigation
                     }
                     else if (symbol is INamedTypeSymbol)
                     {
-                        ilSpyResult = ilspyUsageHandler.Run(projectOutputPath, metadataName, document.Project.Name);
+                        var references = new List<string>();
+                        foreach (var reference in document.Project.MetadataReferences)
+                        {
+                            var image = reference as PortableExecutableReference;
+                            if (image != null)
+                            {
+                                references.Add(image.FilePath);
+                            }
+                        }
+
+                        ilSpyResult = ilspyUsageHandler.Run(projectOutputPath, metadataName, document.Project.Name, references);
                     }
 
                     // var ilSpyResult = ilspyUsageHandler.Run(projectOutputPath, metadataName, document.Project.Name);

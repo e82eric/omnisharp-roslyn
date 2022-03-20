@@ -50,15 +50,15 @@ namespace OmniSharp.Roslyn.CSharp.Services.Decompilation
                 decompilationProject = project;
             }
 
-            if (!_cache.TryGetValue(fileName, out var document))
-            {
+            // if (!_cache.TryGetValue(fileName, out var document))
+            // {
                 //var topLevelSymbol = symbol.GetTopLevelContainingNamedType();
                 var temporaryDocument = decompilationProject.AddDocument(fileName, string.Empty);
 
-                document = await _decompiler.AddSourceToAsync(temporaryDocument, rootFileTypeName, assemblyFilePath);
+                var document = await _decompiler.AddSourceToAsync(temporaryDocument, rootFileTypeName, assemblyFilePath);
 
                 _cache.TryAdd(fileName, document);
-            }
+            // }
 
             return (document, fileName);
         }
